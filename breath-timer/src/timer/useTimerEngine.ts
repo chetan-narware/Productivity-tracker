@@ -6,7 +6,10 @@ interface TimerOptions {
   onComplete?: () => void;
 }
 
-export function useTimerEngine({ exercise, onComplete }: TimerOptions) {
+export function useTimerEngine({
+  exercise,
+  onComplete,
+}: TimerOptions) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [currentCycle, setCurrentCycle] = useState(1);
   const [timeLeft, setTimeLeft] = useState(
@@ -23,15 +26,23 @@ export function useTimerEngine({ exercise, onComplete }: TimerOptions) {
     }
   }
 
+  /* Reset when exercise changes */
+  useEffect(() => {
+    clearTimer();
+    setRunning(false);
+    setCurrentStepIndex(0);
+    setCurrentCycle(1);
+    setTimeLeft(exercise.steps[0]?.duration ?? 0);
+  }, [exercise.id]);
+
   useEffect(() => {
     if (!running) return;
 
     intervalRef.current = window.setInterval(() => {
-      setTimeLeft((prevTime) => {
-        if (prevTime > 1) return prevTime - 1;
+      setTimeLeft((prev) => {
+        if (prev > 1) return prev - 1;
 
-        // When time hits 0, move forward safely
-        moveForward();
+        advance();
         return 0;
       });
     }, 1000);
@@ -39,37 +50,31 @@ export function useTimerEngine({ exercise, onComplete }: TimerOptions) {
     return () => clearTimer();
   }, [running]);
 
-  function moveForward() {
-    setCurrentStepIndex((prevStepIndex) => {
-      const isLastStep =
-        prevStepIndex === exercise.steps.length - 1;
+  function advance() {
+    const isLastStep =
+      currentStepIndex === exercise.steps.length - 1;
 
-      if (!isLastStep) {
-        const nextStepIndex = prevStepIndex + 1;
-        setTimeLeft(exercise.steps[nextStepIndex].duration);
-        return nextStepIndex;
-      }
+    if (!isLastStep) {
+      const nextStep = currentStepIndex + 1;
+      setCurrentStepIndex(nextStep);
+      setTimeLeft(exercise.steps[nextStep].duration);
+      return;
+    }
 
-      // If last step, check cycle
-      setCurrentCycle((prevCycle) => {
-        const isLastCycle = prevCycle === exercise.cycles;
+    const isLastCycle =
+      currentCycle === exercise.cycles;
 
-        if (!isLastCycle) {
-          setTimeLeft(exercise.steps[0].duration);
-          return prevCycle + 1;
-        }
-
-        // Fully complete
-        clearTimer();
-        setRunning(false);
-        onComplete?.();
-        return prevCycle;
-      });
-
-      // Reset to first step
+    if (!isLastCycle) {
+      setCurrentCycle(currentCycle + 1);
+      setCurrentStepIndex(0);
       setTimeLeft(exercise.steps[0].duration);
-      return 0;
-    });
+      return;
+    }
+
+    // Fully complete
+    clearTimer();
+    setRunning(false);
+    onComplete?.();
   }
 
   function start() {

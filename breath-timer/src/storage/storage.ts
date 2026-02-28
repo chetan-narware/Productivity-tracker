@@ -4,17 +4,11 @@ import type {
 } from "../types/exercise";
 import { defaultExercises } from "../features/exercises/defaultExercises";
 
-/* ================================= */
-/* Keys (Namespaced + Versioned)     */
-/* ================================= */
-
 const EXERCISE_KEY = "speech_timer_exercises_v1";
 const SESSION_KEY = "speech_timer_sessions_v1";
 const POMODORO_STATS_KEY = "speech_timer_pomodoro_stats_v1";
 
-/* ================================= */
-/* Internal Helpers                  */
-/* ================================= */
+/* ------------------ Generic Helpers ------------------ */
 
 function read<T>(key: string): T | null {
   const raw = localStorage.getItem(key);
@@ -25,9 +19,7 @@ function write<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-/* ================================= */
-/* Exercise API                      */
-/* ================================= */
+/* ------------------ Exercises ------------------ */
 
 export function getExercises(): Exercise[] {
   return read<Exercise[]>(EXERCISE_KEY) ?? [];
@@ -43,15 +35,20 @@ export function addExercise(exercise: Exercise) {
   saveExercises(exercises);
 }
 
+export function deleteExercise(id: string) {
+  const exercises = getExercises().filter(
+    (ex) => ex.id !== id
+  );
+  saveExercises(exercises);
+}
+
 export function getExerciseById(
   id: string
 ): Exercise | undefined {
   return getExercises().find((ex) => ex.id === id);
 }
 
-/* ================================= */
-/* Session API                       */
-/* ================================= */
+/* ------------------ Sessions ------------------ */
 
 export function getSessions(): SessionRecord[] {
   return read<SessionRecord[]>(SESSION_KEY) ?? [];
@@ -62,15 +59,12 @@ export function addSession(record: SessionRecord) {
   sessions.push(record);
   write(SESSION_KEY, sessions);
 
-  // If it's a pomodoro → update stats
-  if (record.exerciseId.toLowerCase().includes("pomodoro")) {
+  if (record.exerciseId.includes("pomodoro")) {
     updatePomodoroStats();
   }
 }
 
-/* ================================= */
-/* Pomodoro Stats API                */
-/* ================================= */
+/* ------------------ Pomodoro Stats ------------------ */
 
 interface PomodoroStats {
   total: number;
@@ -113,9 +107,7 @@ function updatePomodoroStats() {
   write(POMODORO_STATS_KEY, stats);
 }
 
-/* ================================= */
-/* Initialization                    */
-/* ================================= */
+/* ------------------ Initialization ------------------ */
 
 export function initializeStorage() {
   const existing = getExercises();
