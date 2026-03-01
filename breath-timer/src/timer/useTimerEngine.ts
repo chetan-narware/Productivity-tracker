@@ -1,3 +1,4 @@
+// issue - timer runs eveb after cycles and steps have ended.
 import { useEffect, useRef, useState } from "react";
 import type { Exercise } from "../types/exercise";
 
